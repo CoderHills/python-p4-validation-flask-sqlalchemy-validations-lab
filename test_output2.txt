@@ -1,0 +1,288 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.1, pytest-7.1.3, pluggy-1.6.0 -- /Users/coderhillary/.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/coderhillary/Documents/python-p4-validation-flask-sqlalchemy-validations-lab, configfile: pytest.ini
+plugins: anyio-4.12.0, Faker-14.2.0
+collecting ... collected 8 items
+
+Class Author in models.py requires each record to have a name. PASSED    [ 12%]
+Class Author in models.py requires each record to have a unique name. FAILED [ 25%]
+Class Author in models.py requires each phone number to be exactly ten digits. PASSED [ 37%]
+Class Post in models.py requires each post to have a title. PASSED       [ 50%]
+Class Post in models.py Content too short test. Less than 250 chars. PASSED [ 62%]
+Class Post in models.py Summary too long test. More than 250 chars. PASSED [ 75%]
+Class Post in models.py Incorrect category test PASSED                   [ 87%]
+Class Post in models.py Test clickbait validator for title. PASSED       [100%]
+
+=================================== FAILURES ===================================
+_____________________ TestAuthor.test_requires_unique_name _____________________
+
+self = <sqlalchemy.engine.base.Connection object at 0x10998bb10>
+dialect = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x1099042f0>
+context = <sqlalchemy.dialects.sqlite.base.SQLiteExecutionContext object at 0x10998bed0>
+statement = <sqlalchemy.dialects.sqlite.base.SQLiteCompiler object at 0x10998b9d0>
+parameters = [()]
+
+    def _exec_single_context(
+        self,
+        dialect: Dialect,
+        context: ExecutionContext,
+        statement: Union[str, Compiled],
+        parameters: Optional[_AnyMultiExecuteParams],
+    ) -> CursorResult[Any]:
+        """continue the _execute_context() method for a single DBAPI
+        cursor.execute() or cursor.executemany() call.
+    
+        """
+        if dialect.bind_typing is BindTyping.SETINPUTSIZES:
+            generic_setinputsizes = context._prepare_set_input_sizes()
+    
+            if generic_setinputsizes:
+                try:
+                    dialect.do_set_input_sizes(
+                        context.cursor, generic_setinputsizes, context
+                    )
+                except BaseException as e:
+                    self._handle_dbapi_exception(
+                        e, str(statement), parameters, None, context
+                    )
+    
+        cursor, str_statement, parameters = (
+            context.cursor,
+            context.statement,
+            context.parameters,
+        )
+    
+        effective_parameters: Optional[_AnyExecuteParams]
+    
+        if not context.executemany:
+            effective_parameters = parameters[0]
+        else:
+            effective_parameters = parameters
+    
+        if self._has_events or self.engine._has_events:
+            for fn in self.dispatch.before_cursor_execute:
+                str_statement, effective_parameters = fn(
+                    self,
+                    cursor,
+                    str_statement,
+                    effective_parameters,
+                    context,
+                    context.executemany,
+                )
+    
+        if self._echo:
+            self._log_info(str_statement)
+    
+            stats = context._get_cache_stats()
+    
+            if not self.engine.hide_parameters:
+                self._log_info(
+                    "[%s] %r",
+                    stats,
+                    sql_util._repr_params(
+                        effective_parameters,
+                        batches=10,
+                        ismulti=context.executemany,
+                    ),
+                )
+            else:
+                self._log_info(
+                    "[%s] [SQL parameters hidden due to hide_parameters=True]",
+                    stats,
+                )
+    
+        evt_handled: bool = False
+        try:
+            if context.execute_style is ExecuteStyle.EXECUTEMANY:
+                effective_parameters = cast(
+                    "_CoreMultiExecuteParams", effective_parameters
+                )
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_executemany:
+                        if fn(
+                            cursor,
+                            str_statement,
+                            effective_parameters,
+                            context,
+                        ):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+                    self.dialect.do_executemany(
+                        cursor,
+                        str_statement,
+                        effective_parameters,
+                        context,
+                    )
+            elif not effective_parameters and context.no_parameters:
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_execute_no_params:
+                        if fn(cursor, str_statement, context):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+                    self.dialect.do_execute_no_params(
+                        cursor, str_statement, context
+                    )
+            else:
+                effective_parameters = cast(
+                    "_CoreSingleExecuteParams", effective_parameters
+                )
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_execute:
+                        if fn(
+                            cursor,
+                            str_statement,
+                            effective_parameters,
+                            context,
+                        ):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+>                   self.dialect.do_execute(
+                        cursor, str_statement, effective_parameters, context
+                    )
+
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/sqlalchemy/engine/base.py:1967: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x1099042f0>
+cursor = <sqlite3.Cursor object at 0x109a65cc0>
+statement = 'DELETE FROM authors', parameters = ()
+context = <sqlalchemy.dialects.sqlite.base.SQLiteExecutionContext object at 0x10998bed0>
+
+    def do_execute(self, cursor, statement, parameters, context=None):
+>       cursor.execute(statement, parameters)
+E       sqlite3.OperationalError: no such table: authors
+
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/sqlalchemy/engine/default.py:952: OperationalError
+
+The above exception was the direct cause of the following exception:
+
+self = <models_test.TestAuthor object at 0x1098d7890>
+
+    def test_requires_unique_name(self):
+        '''requires each record to have a unique name.'''
+        with app.app_context():
+>           db.session.query(Author).delete()
+
+server/testing/models_test.py:29: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/sqlalchemy/orm/query.py:3210: in delete
+    self.session.execute(
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/sqlalchemy/orm/session.py:2351: in execute
+    return self._execute_internal(
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/sqlalchemy/orm/session.py:2249: in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/sqlalchemy/orm/bulk_persistence.py:2033: in orm_execute_statement
+    return super().orm_execute_statement(
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/sqlalchemy/orm/context.py:306: in orm_execute_statement
+    result = conn.execute(
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/sqlalchemy/engine/base.py:1419: in execute
+    return meth(
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/sqlalchemy/sql/elements.py:527: in _execute_on_connection
+    return connection._execute_clauseelement(
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/sqlalchemy/engine/base.py:1641: in _execute_clauseelement
+    ret = self._execute_context(
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/sqlalchemy/engine/base.py:1846: in _execute_context
+    return self._exec_single_context(
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/sqlalchemy/engine/base.py:1986: in _exec_single_context
+    self._handle_dbapi_exception(
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/sqlalchemy/engine/base.py:2363: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/sqlalchemy/engine/base.py:1967: in _exec_single_context
+    self.dialect.do_execute(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x1099042f0>
+cursor = <sqlite3.Cursor object at 0x109a65cc0>
+statement = 'DELETE FROM authors', parameters = ()
+context = <sqlalchemy.dialects.sqlite.base.SQLiteExecutionContext object at 0x10998bed0>
+
+    def do_execute(self, cursor, statement, parameters, context=None):
+>       cursor.execute(statement, parameters)
+E       sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such table: authors
+E       [SQL: DELETE FROM authors]
+E       (Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/sqlalchemy/engine/default.py:952: OperationalError
+=============================== warnings summary ===============================
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:726
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:726
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:726
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:726
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:726
+  /Users/coderhillary/.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:726: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    parts = parts or [ast.Str("")]
+
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:723
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:723
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:723
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:723
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:723
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:723
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:723
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:723
+  /Users/coderhillary/.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:723: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    _convert(elem) if is_dynamic else ast.Str(s=elem)
+
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+  /Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608: DeprecationWarning: Constant.__init__ got an unexpected keyword argument 's'. Support for arbitrary keyword arguments is deprecated and will be removed in Python 3.15.
+    return Constant(*args, **kwargs)
+
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+  /Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608: DeprecationWarning: Attribute s is deprecated and will be removed in Python 3.14; use value instead
+    return Constant(*args, **kwargs)
+
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+../../../../Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608
+  /Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:608: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.
+    return Constant(*args, **kwargs)
+
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:730: 10 warnings
+  /Users/coderhillary/.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:730: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    if isinstance(p, ast.Str) and isinstance(ret[-1], ast.Str):
+
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:731
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:731
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:731
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:731
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:731
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:731
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:731
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:731
+  /Users/coderhillary/.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:731: DeprecationWarning: Attribute s is deprecated and will be removed in Python 3.14; use value instead
+    ret[-1] = ast.Str(ret[-1].s + p.s)
+
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:731
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:731
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:731
+../../.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:731
+  /Users/coderhillary/.local/share/virtualenvs/coffee_shop-Pfzn6qKQ/lib/python3.13/site-packages/werkzeug/routing/rules.py:731: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    ret[-1] = ast.Str(ret[-1].s + p.s)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED Class Author in models.py requires each record to have a unique name.
+=================== 1 failed, 7 passed, 59 warnings in 4.46s ===================

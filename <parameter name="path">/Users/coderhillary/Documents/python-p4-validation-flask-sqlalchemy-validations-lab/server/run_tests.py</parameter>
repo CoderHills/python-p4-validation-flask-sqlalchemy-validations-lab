@@ -1,0 +1,130 @@
+<parameter name="content">#!/usr/bin/env python
+import sys
+sys.path.insert(0, '.')
+
+from app import app
+from models import db, Author, Post
+
+def run_tests():
+    print("Running validation tests...")
+    all_passed = True
+    
+    with app.app_context():
+        db.create_all()
+        
+        # Test 1: Author name required
+        print("\n1. Testing Author name required...")
+        try:
+            a = Author(name='', phone_number='1234567890')
+            db.session.add(a)
+            db.session.commit()
+            print("   FAIL: Should have raised ValueError")
+            all_passed = False
+        except ValueError as e:
+            print(f"   PASS: {e}")
+        finally:
+            db.session.rollback()
+        
+        # Test 2: Author phone validation
+        print("\n2. Testing Author phone validation...")
+        try:
+            a = Author(name='Test', phone_number='123')
+            db.session.add(a)
+            db.session.commit()
+            print("   FAIL: Should have raised ValueError")
+            all_passed = False
+        except ValueError as e:
+            print(f"   PASS: {e}")
+        finally:
+            db.session.rollback()
+        
+        # Test 3: Post title required
+        print("\n3. Testing Post title required...")
+        try:
+            p = Post(title='', content='A'*250, category='Non-Fiction')
+            db.session.add(p)
+            db.session.commit()
+            print("   FAIL: Should have raised ValueError")
+            all_passed = False
+        except ValueError as e:
+            print(f"   PASS: {e}")
+        finally:
+            db.session.rollback()
+        
+        # Test 4: Post content length
+        print("\n4. Testing Post content length...")
+        try:
+            p = Post(title='Test', content='A'*249, category='Non-Fiction')
+            db.session.add(p)
+            db.session.commit()
+            print("   FAIL: Should have raised ValueError")
+            all_passed = False
+        except ValueError as e:
+            print(f"   PASS: {e}")
+        finally:
+            db.session.rollback()
+        
+        # Test 5: Post summary length
+        print("\n5. Testing Post summary length...")
+        try:
+            p = Post(title='Test', content='A'*250, summary='T'*251, category='Non-Fiction')
+            db.session.add(p)
+            db.session.commit()
+            print("   FAIL: Should have raised ValueError")
+            all_passed = False
+        except ValueError as e:
+            print(f"   PASS: {e}")
+        finally:
+            db.session.rollback()
+        
+        # Test 6: Post category
+        print("\n6. Testing Post category...")
+        try:
+            p = Post(title='Test', content='A'*250, category='Banana')
+            db.session.add(p)
+            db.session.commit()
+            print("   FAIL: Should have raised ValueError")
+            all_passed = False
+        except ValueError as e:
+            print(f"   PASS: {e}")
+        finally:
+            db.session.rollback()
+        
+        # Test 7: Post clickbait
+        print("\n7. Testing Post clickbait...")
+        try:
+            p = Post(title='Why I love programming', content='A'*260, category='Fiction')
+            db.session.add(p)
+            db.session.commit()
+            print("   FAIL: Should have raised ValueError")
+            all_passed = False
+        except ValueError as e:
+            print(f"   PASS: {e}")
+        finally:
+            db.session.rollback()
+        
+        # Test 8: Valid data should work
+        print("\n8. Testing valid data works...")
+        try:
+            a = Author(name='John Doe', phone_number='1234567890')
+            db.session.add(a)
+            db.session.commit()
+            print("   PASS: Valid Author created")
+        except Exception as e:
+            print(f"   FAIL: {e}")
+            all_passed = False
+        finally:
+            db.session.rollback()
+            db.drop_all()
+    
+    print("\n" + "="*50)
+    if all_passed:
+        print("ALL TESTS PASSED!")
+        return 0
+    else:
+        print("SOME TESTS FAILED!")
+        return 1
+
+if __name__ == '__main__':
+    sys.exit(run_tests())
+</parameter>

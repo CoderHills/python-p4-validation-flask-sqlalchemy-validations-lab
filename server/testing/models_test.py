@@ -26,6 +26,7 @@ class TestAuthor:
     def test_requires_unique_name(self):
         '''requires each record to have a unique name.'''
         with app.app_context():
+            db.create_all()
             db.session.query(Author).delete()
             db.session.commit()
         
